@@ -62,21 +62,34 @@ class Recaptcha extends \Phalcon\DI\Injectable
      * @param boolean $useSSL Should the request be made over ssl? (optional, default is false)
      * @return string - The HTML to be embedded in the user's form.
      */
-    public static function get($publicKey, $error = '', $useSSL = false)
+    public static function get($publicKey, $error = '', $useSSL = false, $options = array())
     {
-        // Merging method arguments with class fileds 
-        $publicKey = $publicKey or die(self::RECAPTCHA_ERROR_KEY);
+        // Merging method arguments with class fileds
+        if (!$publicKey) {
+            throw new \Phalcon\Exception(self::RECAPTCHA_ERROR_KEY);
+        }
 
         // Choosing a server
         $server = $useSSL ? self::RECAPTCHA_API_SECURE_SERVER : self::RECAPTCHA_API_SERVER;
 
         // Append an error
-        if ($error) $error = "&amp;error=".$error;
+        if ($error)
+            $error = "&amp;error=" . $error;
 
         // Return HTML
-        return '<script type="text/javascript" src="'.$server.'/challenge?k='.$publicKey.$error.'"></script>
+        $html = '';
+        if (count($options) > 0) {
+            $html = array();
+            foreach ($options as $var => $val) {
+                $html[] = "$var: '$val'";
+            }
+            $html = implode(',', $html);
+            $html = '<script type="text/javascript">var RecaptchaOptions = { ' . $html . ' };</script>';
+        }
+        return $html . '
+        <script type="text/javascript" src="' . $server . '/challenge?k=' . $publicKey . $error . '"></script>
         <noscript>
-            <iframe src="'.$server.'/noscript?k='.$publicKey.$error.'" height="300" width="500" frameborder="0"></iframe><br/>
+            <iframe src="' . $server . '/noscript?k=' . $publicKey . $error . '" height="300" width="500" frameborder="0"></iframe><br/>
             <textarea name="recaptcha_challenge_field" rows="3" cols="40"></textarea>
             <input type="hidden" name="recaptcha_response_field" value="manual_challenge"/>
         </noscript>';
